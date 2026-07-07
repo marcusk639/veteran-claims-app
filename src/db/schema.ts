@@ -4,6 +4,8 @@ import {
   integer,
   timestamp,
   primaryKey,
+  uuid,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const usageCounters = pgTable(
@@ -32,3 +34,31 @@ export const rateLimitWindows = pgTable(
     pk: primaryKey({ columns: [table.key, table.windowStart] }),
   }),
 );
+
+export interface Citation {
+  source: string;
+  section: string;
+  snippet: string;
+}
+
+export const conversations = pgTable("conversations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  agentType: text("agent_type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  citations: jsonb("citations").notNull().default([]).$type<Citation[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
