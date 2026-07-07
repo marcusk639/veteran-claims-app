@@ -1,7 +1,7 @@
 import { Webhook } from "svix";
 import { getRequiredEnv } from "@/lib/env";
-import { captureServerEvent } from "@/lib/analytics";
-import { NextResponse } from "next/server";
+import { captureServerEvent, flushAnalytics } from "@/lib/analytics";
+import { NextResponse, after } from "next/server";
 
 export async function POST(req: Request) {
   const payload = await req.text();
@@ -21,6 +21,11 @@ export async function POST(req: Request) {
 
   if (event.type === "user.created") {
     captureServerEvent(event.data.id, "signup");
+    // The serverless sandbox can freeze the instant the response below is
+    // sent, before posthog-node's internal batch is flushed over the
+    // network. after() keeps the function alive until the flush completes,
+    // without delaying this response.
+    after(() => flushAnalytics());
   }
 
   return NextResponse.json({ received: true });

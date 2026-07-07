@@ -19,3 +19,19 @@ export function captureServerEvent(
 ): void {
   getClient().capture({ distinctId, event, properties });
 }
+
+/**
+ * Drains the PostHog client's current event queue.
+ *
+ * Uses `flush()` rather than `shutdown()` -- `shutdown()` permanently
+ * disables the client, which would break reuse of the module-scoped
+ * singleton across warm serverless invocations. `flush()` just sends
+ * whatever is queued right now and leaves the client usable afterward.
+ *
+ * Intended to be called from Next.js's `after()` so the serverless
+ * function stays alive until the batched event is actually delivered,
+ * without adding latency to the response that triggered it.
+ */
+export async function flushAnalytics(): Promise<void> {
+  await getClient().flush();
+}
