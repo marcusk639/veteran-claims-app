@@ -192,4 +192,41 @@ describe("POST /api/chat", () => {
 
     expect(streamTextMock).not.toHaveBeenCalled();
   });
+
+  it("does not let a cost-alert failure (e.g. missing env var) break the chat response", async () => {
+    checkCostAlertMock
+      .mockReset()
+      .mockRejectedValue(
+        new Error(
+          "Missing required environment variable: COST_ALERT_THRESHOLD_USD",
+        ),
+      );
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    const res = await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+    expect(res.status).toBe(200);
+
+    const { onFinish } = streamTextMock.mock.calls[0][0];
+    await expect(
+      onFinish({
+        text: "some answer",
+        usage: { inputTokens: 10, outputTokens: 5 },
+        toolResults: [],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(recordMessageCostMock).toHaveBeenCalledTimes(1);
+    expect(checkCostAlertMock).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
 });
