@@ -19,12 +19,21 @@ export const get_documentToolWithClient = (
           ),
       })
       .strict(),
+    // Hand-fix (see search_documents.ts for the same pattern): a thrown
+    // connection error is caught and turned into an empty string rather than
+    // propagating, so a getDocument failure can't abort the tool-calling
+    // loop -- the model still has whatever searchDocuments already returned.
     execute: async (args): Promise<string> => {
-      const client = await getClient();
-      const result = await client.callTool({
-        name: "get_document",
-        arguments: args,
-      });
+      let result;
+      try {
+        const client = await getClient();
+        result = await client.callTool({
+          name: "get_document",
+          arguments: args,
+        });
+      } catch {
+        return "";
+      }
 
       // Handle different content types from MCP
       if (Array.isArray(result.content)) {

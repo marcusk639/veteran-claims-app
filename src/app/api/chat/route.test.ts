@@ -5,6 +5,7 @@ const {
   checkRateLimitMock,
   streamTextMock,
   dbInsertMock,
+  dbSelectMock,
   captureServerEventMock,
   getKnowledgeToolsMock,
   recordMessageCostMock,
@@ -14,6 +15,7 @@ const {
   checkRateLimitMock: vi.fn(),
   streamTextMock: vi.fn(),
   dbInsertMock: vi.fn(),
+  dbSelectMock: vi.fn(),
   captureServerEventMock: vi.fn(),
   getKnowledgeToolsMock: vi.fn(),
   recordMessageCostMock: vi.fn(),
@@ -46,6 +48,11 @@ vi.mock("@/db", () => ({
         };
       },
     }),
+    select: () => ({
+      from: () => ({
+        where: async () => dbSelectMock(),
+      }),
+    }),
   },
 }));
 
@@ -69,6 +76,7 @@ describe("POST /api/chat", () => {
       toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
     });
     dbInsertMock.mockReset();
+    dbSelectMock.mockReset().mockResolvedValue([]);
     captureServerEventMock.mockReset();
     recordMessageCostMock.mockReset();
     checkCostAlertMock.mockReset().mockResolvedValue({
@@ -105,6 +113,27 @@ describe("POST /api/chat", () => {
     const call = streamTextMock.mock.calls[0][0];
     expect(call.tools).toEqual({ searchDocuments: {}, getDocument: {} });
     expect(call.system).toContain("Knowledge Assistant");
+  });
+
+  it("configures streamText with a multi-step stopWhen so the model can answer after retrieving", async () => {
+    await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    const call = streamTextMock.mock.calls[0][0];
+    // Default stopWhen is isStepCount(1), which halts right after the tool
+    // call step and never lets the model read results back. Regression
+    // guard: stopWhen must be explicitly configured, not left undefined.
+    expect(call.stopWhen).toBeDefined();
+    expect(typeof call.stopWhen).toBe("function");
+    // A single completed step must NOT satisfy the configured condition --
+    // otherwise the model would still be cut off right after the tool call.
+    const stoppedAfterOneStep = await call.stopWhen({ steps: [{}] });
+    expect(stoppedAfterOneStep).not.toBe(true);
   });
 
   it("builds citations from the search_documents wrapper's structured results on finish", async () => {
@@ -228,5 +257,54 @@ describe("POST /api/chat", () => {
     expect(consoleErrorSpy).toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it("returns 403 and never streams when the supplied conversationId belongs to another user", async () => {
+    dbSelectMock.mockResolvedValue([{ userId: "some_other_user" }]);
+
+    const res = await POST(
+      buildRequest({
+        conversationId: "convo-owned-by-someone-else",
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(streamTextMock).not.toHaveBeenCalled();
+    expect(dbInsertMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when the supplied conversationId does not exist", async () => {
+    dbSelectMock.mockResolvedValue([]);
+
+    const res = await POST(
+      buildRequest({
+        conversationId: "convo-does-not-exist",
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(streamTextMock).not.toHaveBeenCalled();
+  });
+
+  it("proceeds normally when the supplied conversationId belongs to the authenticated user", async () => {
+    dbSelectMock.mockResolvedValue([{ userId: "user_test" }]);
+
+    const res = await POST(
+      buildRequest({
+        conversationId: "convo-owned-by-user-test",
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(streamTextMock).toHaveBeenCalledTimes(1);
   });
 });

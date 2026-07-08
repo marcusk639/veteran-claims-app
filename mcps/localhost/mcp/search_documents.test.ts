@@ -61,4 +61,22 @@ describe("search_documentsToolWithClient", () => {
       results: [],
     });
   });
+
+  it("returns the same empty-results shape as a zero-result search when the MCP call throws (connection failure)", async () => {
+    const callTool = vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const client = { callTool };
+
+    const tool = search_documentsToolWithClient(() => client as never);
+    const output = await tool.execute!({ query: "PTSD rating criteria" }, {
+      toolCallId: "call-3",
+      messages: [],
+    } as unknown as Parameters<NonNullable<typeof tool.execute>>[1]);
+
+    // Deliberately identical to the "no matching chunks" case above: this is
+    // what lets the existing system-prompt rule ("if searchDocuments returns
+    // no relevant results, respond with the grounded-refusal sentence")
+    // apply deterministically to a failed retrieval too, without needing the
+    // model to recognize a distinct tool-error state.
+    expect(output).toEqual({ text: "", results: [] });
+  });
 });

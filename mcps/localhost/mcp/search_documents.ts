@@ -44,12 +44,26 @@ export const search_documentsToolWithClient = (
     // `result.content` to a string, discarding `result.structuredContent` -- the
     // full RetrievalResult objects the tool's own description promises for
     // building UI citations. Reapply this after any regeneration.
+    //
+    // Also hand-fixed: a thrown connection error (MCP server down, bad
+    // RAG_MCP_URL/RAG_MCP_TOKEN) is caught and turned into the same shape as
+    // a zero-result search instead of propagating. streamText would
+    // otherwise surface a thrown execute() as a tool-error step and continue
+    // the loop, leaving the grounded-refusal guarantee dependent on the
+    // model noticing an error -- returning an empty result set instead lets
+    // the system prompt's existing "no relevant results" refusal rule apply
+    // deterministically to a failed retrieval too.
     execute: async (args) => {
-      const client = await getClient();
-      const result = await client.callTool({
-        name: "search_documents",
-        arguments: args,
-      });
+      let result;
+      try {
+        const client = await getClient();
+        result = await client.callTool({
+          name: "search_documents",
+          arguments: args,
+        });
+      } catch {
+        return { text: "", results: [] };
+      }
 
       // Handle different content types from MCP
       const text = Array.isArray(result.content)

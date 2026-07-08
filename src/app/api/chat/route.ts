@@ -1,6 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import {
+  streamText,
+  convertToModelMessages,
+  stepCountIs,
+  type UIMessage,
+} from "ai";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   conversations,
@@ -72,7 +78,15 @@ export async function POST(req: Request) {
   const body = (await req.json()) as ChatRequestBody;
 
   let conversationId = body.conversationId;
-  if (!conversationId) {
+  if (conversationId) {
+    const [existing] = await db
+      .select({ userId: conversations.userId })
+      .from(conversations)
+      .where(eq(conversations.id, conversationId));
+    if (!existing || existing.userId !== userId) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+  } else {
     const [created] = await db
       .insert(conversations)
       .values({ userId, agentType: "knowledge-assistant" })
@@ -123,6 +137,10 @@ export async function POST(req: Request) {
     system: KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT,
     messages: await convertToModelMessages(body.messages),
     tools,
+    // Default stopWhen is isStepCount(1), which halts right after the tool
+    // call step and never lets the model read results and write an answer.
+    // Allow: 1) tool call, 2) optional getDocument follow-up, 3) synthesis.
+    stopWhen: stepCountIs(3),
     onFinish: async ({ text, toolResults, usage }) => {
       const citations = extractCitations(toolResults);
       if (conversationId) {
