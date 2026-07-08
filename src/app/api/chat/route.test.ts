@@ -1,17 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { authMock, checkRateLimitMock, streamTextMock, dbInsertMock } =
-  vi.hoisted(() => ({
-    authMock: vi.fn(),
-    checkRateLimitMock: vi.fn(),
-    streamTextMock: vi.fn(),
-    dbInsertMock: vi.fn(),
-  }));
+const {
+  authMock,
+  checkRateLimitMock,
+  streamTextMock,
+  dbInsertMock,
+  captureServerEventMock,
+} = vi.hoisted(() => ({
+  authMock: vi.fn(),
+  checkRateLimitMock: vi.fn(),
+  streamTextMock: vi.fn(),
+  dbInsertMock: vi.fn(),
+  captureServerEventMock: vi.fn(),
+}));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: checkRateLimitMock }));
 vi.mock("@/lib/knowledge-tools", () => ({
   getKnowledgeTools: () => ({ searchDocuments: {}, getDocument: {} }),
+}));
+vi.mock("@/lib/analytics", () => ({
+  captureServerEvent: captureServerEventMock,
 }));
 vi.mock("ai", async () => {
   const actual = await vi.importActual<typeof import("ai")>("ai");
@@ -20,9 +29,12 @@ vi.mock("ai", async () => {
 vi.mock("@/db", () => ({
   db: {
     insert: () => ({
-      values: (v: unknown) => ({
-        returning: async () => [{ id: "conv-1", ...(v as object) }],
-      }),
+      values: (v: unknown) => {
+        dbInsertMock(v);
+        return {
+          returning: async () => [{ id: "conv-1", ...(v as object) }],
+        };
+      },
     }),
   },
 }));
@@ -46,6 +58,7 @@ describe("POST /api/chat", () => {
       toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
     });
     dbInsertMock.mockReset();
+    captureServerEventMock.mockReset();
   });
 
   it("returns 401 when there is no authenticated user", async () => {
@@ -73,5 +86,63 @@ describe("POST /api/chat", () => {
     const call = streamTextMock.mock.calls[0][0];
     expect(call.tools).toEqual({ searchDocuments: {}, getDocument: {} });
     expect(call.system).toContain("Knowledge Assistant");
+  });
+
+  it("builds citations from the search_documents wrapper's structured results on finish", async () => {
+    await POST(
+      buildRequest({
+        messages: [
+          {
+            id: "1",
+            role: "user",
+            parts: [{ type: "text", text: "What is a DBQ?" }],
+          },
+        ],
+      }),
+    );
+
+    const { onFinish } = streamTextMock.mock.calls[0][0];
+    await onFinish({
+      text: "A DBQ is a Disability Benefits Questionnaire.",
+      usage: { inputTokens: 10, outputTokens: 5 },
+      toolResults: [
+        {
+          output: {
+            text: "[1] DBQ Overview — score 0.95\n   A DBQ is a form used to document disability claims.",
+            results: [
+              {
+                text: "A DBQ is a form used to document disability claims.",
+                score: 0.95,
+                denseScore: 0.94,
+                sparseScore: 0.88,
+                document: {
+                  id: "doc-1",
+                  title: "DBQ Overview",
+                  sourceId: "source-1",
+                  sourceKind: "git-markdown",
+                  metadata: {},
+                },
+                chunk: {
+                  id: "chunk-1",
+                  ordinal: 0,
+                  headingPath: ["What is a DBQ", "Overview"],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    const assistantInsert = dbInsertMock.mock.calls
+      .map(([v]) => v as { role?: string; citations?: unknown })
+      .find((v) => v.role === "assistant");
+    expect(assistantInsert?.citations).toEqual([
+      {
+        source: "DBQ Overview",
+        section: "What is a DBQ › Overview",
+        snippet: "A DBQ is a form used to document disability claims.",
+      },
+    ]);
   });
 });

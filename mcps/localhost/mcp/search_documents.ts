@@ -39,7 +39,12 @@ export const search_documentsToolWithClient = (
           .optional(),
       })
       .strict(),
-    execute: async (args): Promise<string> => {
+    // Hand-fix to generated code (mcp-to-ai-sdk), matching the client.ts URL/auth
+    // hand-edit from Task 6: the generated execute() only ever flattened
+    // `result.content` to a string, discarding `result.structuredContent` -- the
+    // full RetrievalResult objects the tool's own description promises for
+    // building UI citations. Reapply this after any regeneration.
+    execute: async (args) => {
       const client = await getClient();
       const result = await client.callTool({
         name: "search_documents",
@@ -47,16 +52,21 @@ export const search_documentsToolWithClient = (
       });
 
       // Handle different content types from MCP
-      if (Array.isArray(result.content)) {
-        return result.content
-          .map((item: unknown) =>
-            typeof item === "string" ? item : JSON.stringify(item),
-          )
-          .join("\n");
-      } else if (typeof result.content === "string") {
-        return result.content;
-      } else {
-        return JSON.stringify(result.content);
-      }
+      const text = Array.isArray(result.content)
+        ? result.content
+            .map((item: unknown) =>
+              typeof item === "string" ? item : JSON.stringify(item),
+            )
+            .join("\n")
+        : typeof result.content === "string"
+          ? result.content
+          : JSON.stringify(result.content);
+
+      return {
+        text,
+        results:
+          (result.structuredContent as { results?: unknown[] } | undefined)
+            ?.results ?? [],
+      };
     },
   });

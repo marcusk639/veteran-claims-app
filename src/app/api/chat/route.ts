@@ -23,40 +23,31 @@ interface ChatRequestBody {
   messages: UIMessage[];
 }
 
+interface McpRetrievalResult {
+  text: string;
+  document: { title: string };
+  chunk: { headingPath: string[] };
+}
+
 /**
- * The vendored MCP tool wrappers (src/lib/knowledge-tools.ts) serialize the
- * MCP response's `content` array to a single string in `output` -- they
- * don't surface `structuredContent`. So citations only come through when
- * that string happens to be (or contain) JSON shaped like
- * `{ results: [{ source, section, snippet }] }`; anything else yields no
- * citations for that tool result rather than throwing.
+ * `search_documents`'s vendored wrapper (mcps/localhost/mcp/search_documents.ts)
+ * returns `{ text, results }`, where `results` are `SanitizedRetrievalResult`
+ * objects straight from rag-system's MCP `structuredContent` (see
+ * `@rag/core`'s `RetrievalResult`/`SanitizedRetrievalResult` types).
  */
 function extractCitations(toolResults: unknown): Citation[] {
   if (!Array.isArray(toolResults)) return [];
   const citations: Citation[] = [];
   for (const result of toolResults) {
     const output = (result as { output?: unknown })?.output;
-    if (typeof output !== "string") continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(output);
-    } catch {
-      continue;
-    }
-    const items = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray((parsed as { results?: unknown })?.results)
-        ? (parsed as { results: unknown[] }).results
-        : [];
-    for (const item of items) {
-      const r = item as { source?: string; section?: string; snippet?: string };
-      if (r.source && r.snippet) {
-        citations.push({
-          source: r.source,
-          section: r.section ?? "",
-          snippet: r.snippet,
-        });
-      }
+    const results = (output as { results?: unknown })?.results;
+    if (!Array.isArray(results)) continue;
+    for (const item of results as McpRetrievalResult[]) {
+      citations.push({
+        source: item.document.title,
+        section: item.chunk.headingPath.join(" › "),
+        snippet: item.text,
+      });
     }
   }
   return citations;
