@@ -7,6 +7,8 @@ const {
   dbInsertMock,
   captureServerEventMock,
   getKnowledgeToolsMock,
+  recordMessageCostMock,
+  checkCostAlertMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
@@ -14,6 +16,8 @@ const {
   dbInsertMock: vi.fn(),
   captureServerEventMock: vi.fn(),
   getKnowledgeToolsMock: vi.fn(),
+  recordMessageCostMock: vi.fn(),
+  checkCostAlertMock: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
@@ -23,6 +27,10 @@ vi.mock("@/lib/knowledge-tools", () => ({
 }));
 vi.mock("@/lib/analytics", () => ({
   captureServerEvent: captureServerEventMock,
+}));
+vi.mock("@/lib/cost-alert", () => ({
+  recordMessageCost: recordMessageCostMock,
+  checkCostAlert: checkCostAlertMock,
 }));
 vi.mock("ai", async () => {
   const actual = await vi.importActual<typeof import("ai")>("ai");
@@ -62,6 +70,11 @@ describe("POST /api/chat", () => {
     });
     dbInsertMock.mockReset();
     captureServerEventMock.mockReset();
+    recordMessageCostMock.mockReset();
+    checkCostAlertMock.mockReset().mockResolvedValue({
+      totalUsd: 0,
+      alert: false,
+    });
     getKnowledgeToolsMock
       .mockReset()
       .mockReturnValue({ searchDocuments: {}, getDocument: {} });

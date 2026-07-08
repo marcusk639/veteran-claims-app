@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   integer,
+  numeric,
   timestamp,
   primaryKey,
   uuid,
@@ -58,6 +59,15 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   citations: jsonb("citations").notNull().default([]).$type<Citation[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const messageCosts = pgTable("message_costs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  costUsd: numeric("cost_usd", { precision: 10, scale: 6 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

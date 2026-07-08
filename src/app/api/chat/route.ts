@@ -14,6 +14,7 @@ import {
   NO_GROUNDING_RESPONSE,
 } from "@/lib/chat-system-prompt";
 import { captureServerEvent } from "@/lib/analytics";
+import { recordMessageCost, checkCostAlert } from "@/lib/cost-alert";
 
 const CHAT_RATE_LIMIT = 40; // matches the free-tier "40 msgs/mo" cap's per-minute floor
 const CHAT_RATE_WINDOW_SECONDS = 60;
@@ -136,6 +137,15 @@ export async function POST(req: Request) {
         inputTokens: usage?.inputTokens,
         outputTokens: usage?.outputTokens,
       });
+
+      // Simple per-token estimate; swap in exact Gateway per-model pricing once
+      // real cost data exists (COST_ALERT_THRESHOLD_USD is deliberately left as
+      // runtime config, not hardcoded, for the same reason).
+      const estimatedCostUsd =
+        ((usage?.inputTokens ?? 0) / 1_000_000) * 0.15 +
+        ((usage?.outputTokens ?? 0) / 1_000_000) * 0.6;
+      await recordMessageCost(userId, estimatedCostUsd);
+      await checkCostAlert(60);
     },
   });
 
