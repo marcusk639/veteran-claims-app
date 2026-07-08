@@ -6,18 +6,20 @@ const {
   streamTextMock,
   dbInsertMock,
   captureServerEventMock,
+  getKnowledgeToolsMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
   streamTextMock: vi.fn(),
   dbInsertMock: vi.fn(),
   captureServerEventMock: vi.fn(),
+  getKnowledgeToolsMock: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: checkRateLimitMock }));
 vi.mock("@/lib/knowledge-tools", () => ({
-  getKnowledgeTools: () => ({ searchDocuments: {}, getDocument: {} }),
+  getKnowledgeTools: getKnowledgeToolsMock,
 }));
 vi.mock("@/lib/analytics", () => ({
   captureServerEvent: captureServerEventMock,
@@ -40,6 +42,7 @@ vi.mock("@/db", () => ({
 }));
 
 import { POST } from "./route";
+import { NO_GROUNDING_RESPONSE } from "@/lib/chat-system-prompt";
 
 function buildRequest(body: unknown) {
   return new Request("http://localhost/api/chat", {
@@ -59,6 +62,9 @@ describe("POST /api/chat", () => {
     });
     dbInsertMock.mockReset();
     captureServerEventMock.mockReset();
+    getKnowledgeToolsMock
+      .mockReset()
+      .mockReturnValue({ searchDocuments: {}, getDocument: {} });
   });
 
   it("returns 401 when there is no authenticated user", async () => {
@@ -144,5 +150,33 @@ describe("POST /api/chat", () => {
         snippet: "A DBQ is a form used to document disability claims.",
       },
     ]);
+  });
+
+  it("returns the grounded-refusal response and skips streamText when the MCP connection fails", async () => {
+    getKnowledgeToolsMock.mockImplementationOnce(() => {
+      throw new Error("MCP connection refused");
+    });
+
+    const res = await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.parts).toEqual([{ type: "text", text: NO_GROUNDING_RESPONSE }]);
+
+    const assistantInsert = dbInsertMock.mock.calls
+      .map(
+        ([v]) => v as { role?: string; content?: string; citations?: unknown },
+      )
+      .find((v) => v.role === "assistant");
+    expect(assistantInsert?.content).toBe(NO_GROUNDING_RESPONSE);
+    expect(assistantInsert?.citations).toEqual([]);
+
+    expect(streamTextMock).not.toHaveBeenCalled();
   });
 });
