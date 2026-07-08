@@ -1,13 +1,13 @@
 // Auto-generated index file for MCP tools
 // Source: http://localhost:3001/mcp
-import { getMcpClient } from "./client.js";
+import { getMcpClient } from "./client";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { search_documentsToolWithClient } from "./search_documents.js";
-import { get_documentToolWithClient } from "./get_document.js";
-import { list_sourcesToolWithClient } from "./list_sources.js";
-import { trigger_syncToolWithClient } from "./trigger_sync.js";
-import { purge_sourceToolWithClient } from "./purge_source.js";
-import { askToolWithClient } from "./ask.js";
+import { search_documentsToolWithClient } from "./search_documents";
+import { get_documentToolWithClient } from "./get_document";
+import { list_sourcesToolWithClient } from "./list_sources";
+import { trigger_syncToolWithClient } from "./trigger_sync";
+import { purge_sourceToolWithClient } from "./purge_source";
+import { askToolWithClient } from "./ask";
 
 // Exports using a default client
 export const mcpLocalhostTools = {

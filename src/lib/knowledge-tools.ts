@@ -1,7 +1,7 @@
 import {
   search_documentsTool,
   get_documentTool,
-} from "../../mcps/localhost/mcp/index.js";
+} from "../../mcps/localhost/mcp/index";
 
 /**
  * Only the retrieval tools are exposed to the agent -- never `ask`, per the
