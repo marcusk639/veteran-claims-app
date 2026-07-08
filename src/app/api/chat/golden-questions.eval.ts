@@ -1,10 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { POST } from "./route";
 import { NO_GROUNDING_RESPONSE } from "@/lib/chat-system-prompt";
 
 // Real infrastructure required: RAG_MCP_URL pointing at a running rag-system MCP
 // server with the git-markdown and ecfr-part4 sources synced (Task 4), plus a
 // configured Gateway provider. Run via `pnpm eval`, not `pnpm test`.
+
+// `auth()` pulls in the `server-only` marker package, which throws outside a
+// real Next.js RSC bundler context (no `react-server` resolve condition in
+// plain Vitest/Node). Mocked here only so the eval can reach real MCP
+// retrieval and `streamText` -- rate limiting, retrieval, and generation stay
+// unmocked.
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: () => Promise.resolve({ userId: "eval-user" }),
+}));
 
 const CORE_TOPIC_QUESTIONS = [
   "What is a DBQ and why does it matter for my claim?",
