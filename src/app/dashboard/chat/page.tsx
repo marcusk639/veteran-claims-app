@@ -1,24 +1,28 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { useState } from "react";
 import { CitationPill } from "@/components/citation-pill";
+import type { SanitizedRetrievalResult } from "@/lib/retrieval-result-schema";
 
-// Matches the raw MCP RetrievalResult shape returned by search_documents'
-// execute() (mcps/localhost/mcp/search_documents.ts) -- the tool output
-// streamed to the client is not the flattened Citation shape that
-// extractCitations (src/app/api/chat/route.ts) computes server-side for
-// persistence, it's this raw shape.
-interface SearchResult {
-  text: string;
-  document: { title: string };
-  chunk: { headingPath: string[] };
-}
+// The server echoes the conversation id back as message metadata (see
+// `messageMetadata` in the route's `toUIMessageStreamResponse` call) so it
+// can be threaded into the next request instead of every message starting a
+// new, unlinked conversation.
+type ChatMessage = UIMessage<{ conversationId?: string }>;
 
 export default function ChatPage() {
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+  const { messages, sendMessage, status } = useChat<ChatMessage>({
+    transport: new DefaultChatTransport<ChatMessage>({
+      api: "/api/chat",
+      prepareSendMessagesRequest: ({ messages: sentMessages, body }) => {
+        const conversationId = [...sentMessages]
+          .reverse()
+          .find((m) => m.metadata?.conversationId)?.metadata?.conversationId;
+        return { body: { ...body, conversationId, messages: sentMessages } };
+      },
+    }),
   });
   const [input, setInput] = useState("");
 
@@ -37,8 +41,9 @@ export default function ChatPage() {
                 part.type === "tool-searchDocuments" &&
                 part.state === "output-available"
               ) {
-                const results = (part.output as { results?: SearchResult[] })
-                  .results;
+                const results = (
+                  part.output as { results?: SanitizedRetrievalResult[] }
+                ).results;
                 return (
                   <div key={i} className="mt-1 flex flex-wrap gap-1">
                     {results?.map((r, j) => (

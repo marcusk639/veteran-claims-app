@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Placeholder-format Clerk test keys -- not tied to a real Clerk instance.
+      # `next build` only needs a well-formed key (ClerkProvider is instantiated
+      # during static generation of a few pages), no live network call happens
+      # for build/lint/typecheck/test. Do not point these at production.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktdGVzdC5wbGFjZWhvbGRlci5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_placeholder_ci_only_00000000000000000000
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # This app talks to Postgres exclusively through @neondatabase/serverless's
+      # HTTP driver (drizzle-orm/neon-http), which speaks Neon's HTTPS proxy
+      # protocol, NOT the plain Postgres wire protocol -- a `services: postgres:`
+      # container does not work here (confirmed by hand: db:migrate fails with
+      # "fetch failed" against a vanilla postgres:16 container). Using a real,
+      # ephemeral Neon branch per CI run is the officially-supported pattern and
+      # requires zero driver/app code changes, since the branch's connection
+      # string is a real Neon endpoint just like production.
+      #
+      # Needs two things configured in this repo's GitHub settings (Settings >
+      # Secrets and variables > Actions) before this job can pass:
+      #   - Repository variable NEON_PROJECT_ID (Neon dashboard > Settings)
+      #   - Repository secret NEON_API_KEY (Neon dashboard > Account Settings > API keys)
+      - name: Create ephemeral Neon branch
+        id: create-branch
+        uses: neondatabase/create-branch-action@fb620d43d4c565abaf088b848a4e28e5c4ea4d9c # v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_name: ci-${{ github.run_id }}
+
+      # neondatabase/create-branch-action's db_url/password outputs are not
+      # registered as GitHub Actions secrets (they don't come from the
+      # `secrets` context), so nothing auto-redacts them from step logs --
+      # without this, the full connection string (including password) prints
+      # in plaintext wherever it's referenced. ::add-mask:: makes GitHub
+      # Actions redact the literal value in all subsequent log output.
+      - name: Mask ephemeral Neon branch credentials
+        run: |
+          echo "::add-mask::${{ steps.create-branch.outputs.db_url }}"
+          echo "::add-mask::${{ steps.create-branch.outputs.password }}"
+
+      - name: Export DATABASE_URL from the ephemeral branch
+        run: echo "DATABASE_URL=${{ steps.create-branch.outputs.db_url }}" >> "$GITHUB_ENV"
+
+      - run: pnpm db:migrate
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+      - name: Delete ephemeral Neon branch
+        if: always()
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ steps.create-branch.outputs.branch_id }}
+          api_key: ${{ secrets.NEON_API_KEY }}

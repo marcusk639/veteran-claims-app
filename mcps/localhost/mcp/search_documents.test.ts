@@ -63,7 +63,9 @@ describe("search_documentsToolWithClient", () => {
   });
 
   it("returns the same empty-results shape as a zero-result search when the MCP call throws (connection failure)", async () => {
-    const callTool = vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED"));
+    const callTool = vi
+      .fn()
+      .mockRejectedValue(new Error("connect ECONNREFUSED"));
     const client = { callTool };
 
     const tool = search_documentsToolWithClient(() => client as never);
@@ -78,5 +80,40 @@ describe("search_documentsToolWithClient", () => {
     // apply deterministically to a failed retrieval too, without needing the
     // model to recognize a distinct tool-error state.
     expect(output).toEqual({ text: "", results: [] });
+  });
+
+  it("drops individually malformed results while keeping valid ones, validating at the earliest boundary", async () => {
+    const validResult = {
+      text: "A DBQ is a Disability Benefits Questionnaire.",
+      score: 0.95,
+      denseScore: 0.94,
+      sparseScore: 0.88,
+      document: {
+        id: "doc-1",
+        title: "DBQ Overview",
+        sourceId: "source-1",
+        sourceKind: "git-markdown",
+        metadata: {},
+      },
+      chunk: { id: "chunk-1", ordinal: 0, headingPath: ["Overview"] },
+    };
+    const malformedResult = { nonsense: true };
+
+    const callTool = vi.fn().mockResolvedValue({
+      content: ["[1] DBQ Overview — score 0.95"],
+      structuredContent: { results: [validResult, malformedResult] },
+    });
+    const client = { callTool };
+
+    const tool = search_documentsToolWithClient(() => client as never);
+    const output = await tool.execute!({ query: "What is a DBQ?" }, {
+      toolCallId: "call-4",
+      messages: [],
+    } as unknown as Parameters<NonNullable<typeof tool.execute>>[1]);
+
+    expect(output).toEqual({
+      text: "[1] DBQ Overview — score 0.95",
+      results: [validResult],
+    });
   });
 });

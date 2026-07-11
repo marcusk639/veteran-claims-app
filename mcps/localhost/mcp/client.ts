@@ -8,7 +8,15 @@ export async function getMcpClient(): Promise<Client> {
     return connectionPromise;
   }
 
-  return (connectionPromise = connectToMcp());
+  // Don't cache a rejected connection attempt -- otherwise a single transient
+  // MCP outage (bad RAG_MCP_URL/token, server down at first call) poisons this
+  // warm serverless instance permanently, since every later call would await
+  // the same cached rejection until the platform recycles the instance.
+  connectionPromise = connectToMcp().catch((error) => {
+    connectionPromise = null;
+    throw error;
+  });
+  return connectionPromise;
 }
 
 async function connectToMcp(): Promise<Client> {

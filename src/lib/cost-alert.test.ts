@@ -19,6 +19,7 @@ describe("cost alert", () => {
     await db.execute(
       sql`DELETE FROM message_costs WHERE user_id LIKE 'test-cost-%'`,
     );
+    await db.execute(sql`DELETE FROM cost_alert_state`);
     process.env.COST_ALERT_THRESHOLD_USD = "1.00";
     process.env.COST_ALERT_WEBHOOK_URL = "http://localhost:9999/webhook";
     webhookFetch = vi.fn().mockResolvedValue({ ok: true } as Response);

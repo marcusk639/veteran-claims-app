@@ -35,6 +35,13 @@ export const get_documentToolWithClient = (
         return "";
       }
 
+      // A not-found/failed lookup must not reach the model as if it were
+      // real document content -- the tool description promises `isError`
+      // for a missing id, but the generated wrapper previously ignored it.
+      if (result.isError) {
+        return "";
+      }
+
       // Handle different content types from MCP
       if (Array.isArray(result.content)) {
         return result.content

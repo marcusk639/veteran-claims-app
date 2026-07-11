@@ -1,6 +1,7 @@
 import { tool } from "ai";
 import { type Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { z } from "zod";
+import { sanitizedRetrievalResultSchema } from "@/lib/retrieval-result-schema";
 
 // Auto-generated wrapper for MCP tool: search_documents
 // Source: http://localhost:3001/mcp
@@ -76,11 +77,20 @@ export const search_documentsToolWithClient = (
           ? result.content
           : JSON.stringify(result.content);
 
+      const rawResults =
+        (result.structuredContent as { results?: unknown[] } | undefined)
+          ?.results ?? [];
+
+      // Validate each item independently rather than the whole array at once
+      // (e.g. z.array(schema).catch([])) -- a single malformed item should
+      // drop only that item, not silently discard every other valid result
+      // in the same response.
       return {
         text,
-        results:
-          (result.structuredContent as { results?: unknown[] } | undefined)
-            ?.results ?? [],
+        results: rawResults
+          .map((raw) => sanitizedRetrievalResultSchema.safeParse(raw))
+          .filter((parsed) => parsed.success)
+          .map((parsed) => parsed.data),
       };
     },
   });

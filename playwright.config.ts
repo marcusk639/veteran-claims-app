@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -10,4 +10,15 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
   },
+  projects: [
+    {
+      name: "global setup",
+      testMatch: /global\.setup\.ts/,
+    },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["global setup"],
+    },
+  ],
 });
