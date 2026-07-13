@@ -501,7 +501,18 @@ Original planning notes below are still accurate except for the password-env-var
 
 ---
 
-## Phase 7: Documentation
+## Phase 7: Documentation — 7a/7b ✅ DONE, 7c ⏸️ MANUAL STEP REQUIRED (2026-07-13)
+
+**7a and 7b implemented as planned.** `README.md` rewritten with the two-repo architecture paragraph, prerequisites, an env var table, setup steps, test commands (including the `pnpm eval`/AI-Gateway/not-in-CI caveats), and the Next.js 16 `middleware.ts`→`proxy.ts` migration note. `docs/runbook.md` created covering MCP-reachability checks (manual `curl` against `RAG_MCP_URL`, since extending `/api/health` to also probe MCP is a code change, deliberately left out of this docs-only phase), Vercel rollback (dashboard Instant Rollback + `vercel rollback` CLI), rate-limit troubleshooting (exact `rate_limit_windows`/`usage_counters` queries, cross-referencing the Phase 4 retention cron's cleanup windows), and a placeholder escalation-path section (real contacts can't be invented). Verified: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all green (51/51 tests — one transient timeout on `health/route.test.ts` in a full-suite run turned out to be a flake, reproduced clean on both an isolated rerun and a second full-suite run, unrelated to this phase's doc-only changes). Done on a new branch (`docs/phase7-documentation`) off `main`, since the `feat/phase1-knowledge-assistant` branch/worktree from Phases 1-6 was already merged and removed.
+
+**7c still blocked, confirmed by direct test (not just inherited assumption):** attempted the `.env.example` edit directly this session and the repo's `.env*` PreToolUse hook fired exactly as the plan predicted (`BLOCKED: .env files contain secrets and must not be edited by Claude`), including matching `.env.example` (not just literal `.env`). The four manual edits below are unchanged from the original plan and still need a human:
+
+1. `src/middleware.ts` → `src/proxy.ts` in the comment near `NEXT_PUBLIC_CLERK_SIGN_IN_URL`.
+2. A comment flagging `RAG_MCP_TOKEN=phase1-connectors-dev-token` as a real, currently-working dev credential to rotate before shared/staging use.
+3. Add `CRON_SECRET` (Phase 4) as a documented entry. (`SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` from the original Phase 3b item are **not** applicable — Sentry was deliberately deferred, never installed, so there's no DSN config to document yet; skip that part of the original instruction.)
+4. Add `AI_GATEWAY_API_KEY` as a documented entry.
+
+Original planning notes below are still accurate (modulo the Sentry-DSN non-applicability noted above) and were otherwise followed as written.
 
 **What to implement:** Three independent doc deliverables — README rewrite, an incident-response runbook, and a manual `.env.example` fix (blocked from automated editing).
 

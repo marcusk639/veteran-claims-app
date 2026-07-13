@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# veteran-claims-app — Knowledge Assistant
 
-## Getting Started
+A Next.js 16 App Router chat assistant that answers veteran disability-claims questions grounded in retrieved source documents, with citations. This app is the **consumer** half of a two-repo architecture — it owns auth, chat UI, conversation persistence, rate limiting, and cost tracking, but has no document store or retrieval logic of its own.
 
-First, run the development server:
+## Two-repo architecture
+
+This app talks to a companion repo, **`rag-system`**, over MCP (Model Context Protocol). `rag-system` owns document ingestion (connectors for SharePoint, Google Drive, Gmail, git-markdown, eCFR, etc.), chunking, embeddings, and hybrid (dense + sparse) retrieval, and exposes it as an MCP server. This app vendors thin AI-SDK tool wrappers around that server's tools (`mcps/localhost/mcp/`) and calls them from the chat route (`src/app/api/chat/route.ts`) so the model can search documents and cite what it finds. Without `rag-system` running and reachable, chat still works but falls back to a grounded-refusal response for every question (see "Troubleshooting" in [`docs/runbook.md`](docs/runbook.md)).
+
+## Prerequisites
+
+- **Neon Postgres project** — this app uses `drizzle-orm/neon-http`, which speaks Neon's HTTPS proxy protocol, not the plain Postgres wire protocol. A generic local Postgres container will not work; you need a real Neon project (a free tier is fine for local dev).
+- **Clerk application** (dev instance) — email/password or your preferred sign-in method enabled.
+- **A running `rag-system` MCP server** — clone and run that repo separately; this app expects it at `RAG_MCP_URL` (default `http://localhost:3001/mcp`).
+
+## Environment variables
+
+Copy `.env.example` to `.env.local` and fill in real values. `.env.local` is gitignored — never commit real secrets.
+
+| Variable                            | Purpose                                                                                                                                                          | Where to get it                                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                      | Neon Postgres connection string                                                                                                                                  | Neon dashboard → Project → Connection Details                                           |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key                                                                                                                                            | Clerk dashboard → Configure → API Keys                                                  |
+| `CLERK_SECRET_KEY`                  | Clerk secret key                                                                                                                                                 | Clerk dashboard → Configure → API Keys                                                  |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`     | Must be `/sign-in` — routes unauthenticated users to this app's own sign-in page instead of Clerk's hosted Account Portal                                        | Fixed value, not a credential                                                           |
+| `CLERK_WEBHOOK_SECRET`              | Verifies Clerk webhook signatures (signup event → PostHog)                                                                                                       | Clerk dashboard → Webhooks → your endpoint                                              |
+| `POSTHOG_API_KEY`                   | Server-side analytics events                                                                                                                                     | PostHog project settings                                                                |
+| `RAG_MCP_URL`                       | `rag-system`'s MCP server HTTP endpoint                                                                                                                          | Wherever you're running `rag-system`; default `http://localhost:3001/mcp` for local dev |
+| `RAG_MCP_TOKEN`                     | Bearer token for the `rag-system` MCP server                                                                                                                     | Must match an entry in `rag-system`'s own `API_TOKENS` config                           |
+| `COST_ALERT_THRESHOLD_USD`          | Dollar threshold for the LLM-spend alert webhook                                                                                                                 | Your own choice                                                                         |
+| `COST_ALERT_WEBHOOK_URL`            | Where the cost alert POSTs when threshold is crossed                                                                                                             | Your own webhook/incident endpoint                                                      |
+| `CRON_SECRET`                       | Bearer token securing `/api/cron/cleanup` (Vercel Cron auth)                                                                                                     | Generate a random value yourself                                                        |
+| `AI_GATEWAY_API_KEY`                | Vercel AI Gateway auth for local/non-Vercel dev — the Gateway resolves automatically via OIDC when deployed on Vercel, but needs this explicitly everywhere else | Vercel dashboard → AI Gateway                                                           |
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+pnpm db:migrate
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `pnpm test` — unit and integration tests (Vitest). Requires `DATABASE_URL` set in `.env.local`; several suites (rate limiting, usage tracking, cost alerts, the cron cleanup job) hit a real database rather than mocking it.
+- `pnpm eval` — the golden-questions evaluation suite (`src/app/api/chat/golden-questions.eval.ts`), checking that the assistant grounds real answers in retrieval and correctly refuses when nothing relevant is found. Requires a live `rag-system` MCP server and a working AI Gateway connection. **Not** part of `pnpm test` and **not currently run in CI** — run it manually, or wire it up as a separate non-blocking CI job later.
+- `pnpm lint` / `pnpm typecheck` / `pnpm build` — standard checks, all run in CI (see `.github/workflows/ci.yml`).
 
-## Learn More
+## Next.js 16 migration notes
 
-To learn more about Next.js, take a look at the following resources:
+This app runs on Next.js 16, which has real breaking changes from what most training data and older docs describe — see `node_modules/next/dist/docs/` for the vendored, version-accurate docs before assuming an API shape.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **`middleware.ts` → `proxy.ts`**: Next 16 renamed the middleware convention. This app's routing/auth logic now lives in `src/proxy.ts`, not `src/middleware.ts`. If you're used to older Next.js versions, don't recreate a `middleware.ts` file — it won't be picked up.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Operations
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [`docs/runbook.md`](docs/runbook.md) for incident response: checking MCP reachability, rolling back a deployment, and troubleshooting rate-limit reports.
