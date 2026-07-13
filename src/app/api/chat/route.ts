@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { incrementUsage } from "@/lib/usage";
+import { isFoundingSupporter } from "@/lib/founding-supporter";
 import { getKnowledgeTools } from "@/lib/knowledge-tools";
 import { KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT } from "@/lib/chat-system-prompt";
 import { captureServerEvent } from "@/lib/analytics";
@@ -21,6 +22,10 @@ const CHAT_RATE_LIMIT = 40; // matches the free-tier "40 msgs/mo" cap's per-minu
 const CHAT_RATE_WINDOW_SECONDS = 60;
 const CHAT_MONTHLY_LIMIT = 40;
 const CHAT_USAGE_FEATURE = "knowledge_assistant_messages";
+const CHAT_MODEL_STANDARD = "openai/gpt-4.1-mini";
+// Founding Supporter tier (see docs/superpowers/findings/2026-07-13-product-strategy-synthesis.md
+// §3): unlimited messages + priority model, no Document Workspace dependency.
+const CHAT_MODEL_PRIORITY = "openai/gpt-4.1";
 
 const chatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
@@ -81,6 +86,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
   }
 
+  // Founding Supporter tier: unlimited monthly messages + priority model.
+  // The per-minute limiter above still applies to everyone -- it's an
+  // abuse-scale burst floor, not a monetization gate.
+  const isSupporter = await isFoundingSupporter(userId);
+
   const parseResult = chatRequestSchema.safeParse(await req.json());
   if (!parseResult.success) {
     return NextResponse.json(
@@ -133,7 +143,7 @@ export async function POST(req: Request) {
     CHAT_USAGE_FEATURE,
     monthStart,
   );
-  if (monthlyCount > CHAT_MONTHLY_LIMIT) {
+  if (!isSupporter && monthlyCount > CHAT_MONTHLY_LIMIT) {
     console.warn("chat: monthly message cap exceeded", {
       userId,
       monthlyCount,
@@ -189,7 +199,7 @@ export async function POST(req: Request) {
   const tools = getKnowledgeTools();
 
   const result = streamText({
-    model: "openai/gpt-4.1-mini",
+    model: isSupporter ? CHAT_MODEL_PRIORITY : CHAT_MODEL_STANDARD,
     system: KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT,
     messages: modelMessages,
     tools,

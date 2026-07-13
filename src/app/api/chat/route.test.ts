@@ -13,6 +13,7 @@ const {
   getKnowledgeToolsMock,
   recordMessageCostMock,
   checkCostAlertMock,
+  isFoundingSupporterMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   checkRateLimitMock: vi.fn(),
@@ -26,11 +27,15 @@ const {
   getKnowledgeToolsMock: vi.fn(),
   recordMessageCostMock: vi.fn(),
   checkCostAlertMock: vi.fn(),
+  isFoundingSupporterMock: vi.fn(),
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth: authMock }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: checkRateLimitMock }));
 vi.mock("@/lib/usage", () => ({ incrementUsage: incrementUsageMock }));
+vi.mock("@/lib/founding-supporter", () => ({
+  isFoundingSupporter: isFoundingSupporterMock,
+}));
 vi.mock("@/lib/knowledge-tools", () => ({
   getKnowledgeTools: getKnowledgeToolsMock,
 }));
@@ -104,6 +109,7 @@ describe("POST /api/chat", () => {
       .mockReset()
       .mockResolvedValue({ allowed: true, remaining: 39 });
     incrementUsageMock.mockReset().mockResolvedValue(1);
+    isFoundingSupporterMock.mockReset().mockResolvedValue(false);
     streamTextMock.mockReset().mockReturnValue({
       toUIMessageStreamResponse: () => new Response("ok", { status: 200 }),
     });
@@ -179,6 +185,50 @@ describe("POST /api/chat", () => {
     // persisted questions that never get answered.
     expect(dbInsertMock).not.toHaveBeenCalled();
     consoleWarnSpy.mockRestore();
+  });
+
+  it("does not apply the monthly message cap to a founding supporter", async () => {
+    incrementUsageMock.mockResolvedValue(41);
+    isFoundingSupporterMock.mockResolvedValue(true);
+
+    const res = await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(streamTextMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the priority model for a founding supporter", async () => {
+    isFoundingSupporterMock.mockResolvedValue(true);
+
+    await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    const call = streamTextMock.mock.calls[0][0];
+    expect(call.model).toBe("openai/gpt-4.1");
+  });
+
+  it("uses the standard model for a non-founding-supporter", async () => {
+    await POST(
+      buildRequest({
+        messages: [
+          { id: "1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+      }),
+    );
+
+    const call = streamTextMock.mock.calls[0][0];
+    expect(call.model).toBe("openai/gpt-4.1-mini");
   });
 
   it("returns 400 for a malformed request body", async () => {

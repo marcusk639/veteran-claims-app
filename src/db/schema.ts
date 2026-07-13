@@ -114,3 +114,15 @@ export const costAlertState = pgTable("cost_alert_state", {
   id: text("id").primaryKey().default("singleton"),
   lastAlertedAt: timestamp("last_alerted_at", { withTimezone: true }),
 });
+
+// Interim Founding Supporter tier (GTM/monetization Phase 0 addition, see
+// docs/superpowers/findings/2026-07-13-product-strategy-synthesis.md §3):
+// unlimited chat + priority model, no Document Workspace dependency. No
+// Stripe webhook exists yet to populate this automatically -- until one is
+// wired, activation is a manual insert keyed on the paying user's Clerk id.
+export const foundingSupporters = pgTable("founding_supporters", {
+  userId: text("user_id").primaryKey(),
+  activatedAt: timestamp("activated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

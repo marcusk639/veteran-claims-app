@@ -43,6 +43,13 @@
       "when": 1783793925875,
       "tag": "0005_clammy_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783979858165,
+      "tag": "0006_premium_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

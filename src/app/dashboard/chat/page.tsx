@@ -13,17 +13,18 @@ import type { SanitizedRetrievalResult } from "@/lib/retrieval-result-schema";
 type ChatMessage = UIMessage<{ conversationId?: string }>;
 
 export default function ChatPage() {
-  const { messages, sendMessage, status } = useChat<ChatMessage>({
-    transport: new DefaultChatTransport<ChatMessage>({
-      api: "/api/chat",
-      prepareSendMessagesRequest: ({ messages: sentMessages, body }) => {
-        const conversationId = [...sentMessages]
-          .reverse()
-          .find((m) => m.metadata?.conversationId)?.metadata?.conversationId;
-        return { body: { ...body, conversationId, messages: sentMessages } };
-      },
-    }),
-  });
+  const { messages, sendMessage, status, error, clearError } =
+    useChat<ChatMessage>({
+      transport: new DefaultChatTransport<ChatMessage>({
+        api: "/api/chat",
+        prepareSendMessagesRequest: ({ messages: sentMessages, body }) => {
+          const conversationId = [...sentMessages]
+            .reverse()
+            .find((m) => m.metadata?.conversationId)?.metadata?.conversationId;
+          return { body: { ...body, conversationId, messages: sentMessages } };
+        },
+      }),
+    });
   const [input, setInput] = useState("");
 
   return (
@@ -61,6 +62,16 @@ export default function ChatPage() {
           </div>
         ))}
       </div>
+      {error && (
+        <div className="flex items-center gap-2 text-red-600" role="alert">
+          <span>
+            Something went wrong sending that message. Please try again.
+          </span>
+          <button type="button" onClick={clearError}>
+            Try again
+          </button>
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();

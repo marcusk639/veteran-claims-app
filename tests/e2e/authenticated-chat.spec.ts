@@ -57,3 +57,35 @@ test("a second message in the same session threads onto the same conversation", 
     page.getByTestId("chat-messages").getByText("first question"),
   ).toBeVisible();
 });
+
+test("chat input recovers after a failed send instead of locking permanently", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await clerk.signIn({ page, emailAddress: testUserEmail });
+  await page.goto("/dashboard/chat");
+
+  // Regression guard: a streamText failure (Gateway auth error, rate limit,
+  // provider outage) used to leave `status` stuck at something other than
+  // "ready" forever, permanently disabling the input with no way to recover
+  // short of a page reload. Force exactly that failure mode here.
+  await page.route("**/api/chat", (route) => route.abort("failed"));
+
+  const input = page.getByPlaceholder(/ask about your va disability claim/i);
+  const sendButton = page.getByRole("button", { name: /send/i });
+  await input.fill("this send should fail");
+  await sendButton.click();
+
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(input).toBeDisabled();
+
+  await page.unroute("**/api/chat");
+  await page.getByRole("button", { name: /try again/i }).click();
+
+  await expect(input).toBeEnabled({ timeout: 5_000 });
+  await input.fill("this send should succeed");
+  await sendButton.click();
+  await expect(
+    page.getByTestId("chat-messages").getByText(/assistant:/i),
+  ).toBeVisible({ timeout: 15_000 });
+});
