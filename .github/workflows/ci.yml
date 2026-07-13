@@ -13,6 +13,15 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # NEON_API_KEY (secret) / NEON_PROJECT_ID (variable) are scoped to the
+    # "Prod" GitHub environment, not plain repo-level secrets/variables --
+    # GitHub only exposes environment-scoped secrets/variables to a job that
+    # explicitly declares `environment:`, so this is required for the
+    # `vars.NEON_PROJECT_ID`/`secrets.NEON_API_KEY` references below to
+    # resolve to anything. Confirmed via the GitHub API that this
+    # environment has no protection rules or branch restrictions, so this
+    # doesn't introduce an approval gate.
+    environment: Prod
     env:
       # Placeholder-format Clerk test keys -- not tied to a real Clerk instance.
       # `next build` only needs a well-formed key (ClerkProvider is instantiated
