@@ -86,11 +86,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "rate limit exceeded" }, { status: 429 });
   }
 
-  // Founding Supporter tier: unlimited monthly messages + priority model.
-  // The per-minute limiter above still applies to everyone -- it's an
-  // abuse-scale burst floor, not a monetization gate.
-  const isSupporter = await isFoundingSupporter(userId);
-
   const parseResult = chatRequestSchema.safeParse(await req.json());
   if (!parseResult.success) {
     return NextResponse.json(
@@ -99,6 +94,13 @@ export async function POST(req: Request) {
     );
   }
   const body = parseResult.data;
+
+  // Founding Supporter tier: unlimited monthly messages + priority model.
+  // The per-minute limiter above still applies to everyone -- it's an
+  // abuse-scale burst floor, not a monetization gate. Checked after body
+  // validation so a malformed request that will 400 anyway doesn't pay for
+  // the DB round-trip.
+  const isSupporter = await isFoundingSupporter(userId);
 
   const lastMessage = body.messages[body.messages.length - 1];
   if (lastMessage.role !== "user") {
