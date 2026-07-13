@@ -1,0 +1,2 @@
+CREATE INDEX "rate_limit_windows_window_start_idx" ON "rate_limit_windows" USING btree ("window_start");--> statement-breakpoint
+CREATE INDEX "usage_counters_period_start_idx" ON "usage_counters" USING btree ("period_start");

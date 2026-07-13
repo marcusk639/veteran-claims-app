@@ -7,22 +7,29 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "eval": "vitest run --config vitest.eval.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@ai-sdk/react": "^4.0.18",
     "@clerk/nextjs": "^7.5.13",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@neondatabase/serverless": "^1.1.0",
+    "ai": "^7.0.17",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.10",
     "posthog-node": "^5.39.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "svix": "^1.96.1"
+    "svix": "^1.96.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@clerk/testing": "^2.2.7",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

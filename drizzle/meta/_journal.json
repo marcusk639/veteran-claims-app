@@ -15,6 +15,34 @@
       "when": 1783381607185,
       "tag": "0001_noisy_swarm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783422813945,
+      "tag": "0002_wild_machine_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783473073539,
+      "tag": "0003_sweet_risque",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783550442278,
+      "tag": "0004_cloudy_tomas",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783793925875,
+      "tag": "0005_clammy_loki",
+      "breakpoints": true
     }
   ]
 }
