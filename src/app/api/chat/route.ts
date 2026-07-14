@@ -26,6 +26,10 @@ const CHAT_MODEL_STANDARD = "openai/gpt-4.1-mini";
 // Founding Supporter tier (see docs/superpowers/findings/2026-07-13-product-strategy-synthesis.md
 // §3): unlimited messages + priority model, no Document Workspace dependency.
 const CHAT_MODEL_PRIORITY = "openai/gpt-4.1";
+// Default stopWhen is isStepCount(1), which halts right after the tool call
+// step and never lets the model read results and write an answer. Allow:
+// 1) tool call, 2) optional getDocument follow-up, 3) synthesis.
+const MAX_TOOL_CALL_STEPS = 3;
 
 const chatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
@@ -289,10 +293,7 @@ export async function POST(req: Request) {
     system: KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT,
     messages: modelMessages,
     tools,
-    // Default stopWhen is isStepCount(1), which halts right after the tool
-    // call step and never lets the model read results and write an answer.
-    // Allow: 1) tool call, 2) optional getDocument follow-up, 3) synthesis.
-    stopWhen: stepCountIs(3),
+    stopWhen: stepCountIs(MAX_TOOL_CALL_STEPS),
     abortSignal: req.signal,
     onFinish: buildOnFinishHandler(userId, conversationId),
   });
