@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   text,
   integer,
   numeric,
@@ -9,6 +10,13 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
+
+// This app's own code only ever writes "user"/"assistant" (never "system" --
+// that's a client-request-schema role, not a persisted-message role) and
+// "knowledge-assistant" respectively. Enums make that a DB-level constraint
+// instead of an assumption a future bug or stray manual UPDATE could break.
+export const messageRoleEnum = pgEnum("message_role", ["user", "assistant"]);
+export const agentTypeEnum = pgEnum("agent_type", ["knowledge-assistant"]);
 
 export const usageCounters = pgTable(
   "usage_counters",
@@ -62,7 +70,7 @@ export const conversations = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: text("user_id").notNull(),
-    agentType: text("agent_type").notNull(),
+    agentType: agentTypeEnum("agent_type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -79,7 +87,7 @@ export const messages = pgTable(
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id),
-    role: text("role").notNull(),
+    role: messageRoleEnum("role").notNull(),
     content: text("content").notNull(),
     citations: jsonb("citations").notNull().default([]).$type<Citation[]>(),
     createdAt: timestamp("created_at", { withTimezone: true })
