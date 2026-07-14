@@ -176,6 +176,29 @@ function buildOnFinishHandler(
   };
 }
 
+/**
+ * Sends a message to the Knowledge Assistant and streams back the reply.
+ *
+ * Request body (see `chatRequestSchema`): `{ conversationId?: uuid,
+ * messages: [{ id?, role: "user"|"assistant"|"system", parts: [...] }] }`
+ * (at least one message; the last message must have `role: "user"`).
+ *
+ * Success: a `toUIMessageStreamResponse` stream (200), with `messageMetadata`
+ * echoing `{ conversationId }` back to the client so follow-up requests
+ * thread onto the same conversation.
+ *
+ * Errors (checked in this order):
+ * - 401 `unauthorized` -- no authenticated Clerk user.
+ * - 429 `rate limit exceeded` -- per-minute abuse floor (`CHAT_RATE_LIMIT`
+ *   per `CHAT_RATE_WINDOW_SECONDS`), applies to everyone including
+ *   Founding Supporters.
+ * - 400 `invalid request body` -- fails `chatRequestSchema`.
+ * - 400 `the last message must be from the user`.
+ * - 403 `forbidden` -- `conversationId` supplied but doesn't exist or
+ *   belongs to another user.
+ * - 429 `monthly message limit reached` -- free-tier `CHAT_MONTHLY_LIMIT`
+ *   exceeded (skipped for Founding Supporters).
+ */
 export async function POST(req: Request) {
   const { userId } = await auth();
   if (!userId) {
