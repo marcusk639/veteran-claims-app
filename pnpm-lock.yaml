@@ -6,11 +6,11 @@ settings:
 
 dependencies:
   '@ai-sdk/react':
-    specifier: ^4.0.18
-    version: 4.0.18(react@19.2.7)(zod@4.4.3)
+    specifier: ^4.0.27
+    version: 4.0.27(react@19.2.7)(zod@4.4.3)
   '@clerk/nextjs':
-    specifier: ^7.5.13
-    version: 7.5.13(next@16.2.10)(react-dom@19.2.4)(react@19.2.7)
+    specifier: ^7.5.17
+    version: 7.5.17(next@16.2.10)(react-dom@19.2.7)(react@19.2.7)
   '@modelcontextprotocol/sdk':
     specifier: ^1.29.0
     version: 1.29.0(zod@4.4.3)
@@ -18,8 +18,8 @@ dependencies:
     specifier: ^1.1.0
     version: 1.1.0
   ai:
-    specifier: ^7.0.17
-    version: 7.0.17(zod@4.4.3)
+    specifier: ^7.0.26
+    version: 7.0.26(zod@4.4.3)
   dotenv:
     specifier: ^17.4.2
     version: 17.4.2
@@ -28,7 +28,7 @@ dependencies:
     version: 0.45.2(@neondatabase/serverless@1.1.0)
   next:
     specifier: 16.2.10
-    version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4)(react@19.2.7)
+    version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7)(react@19.2.7)
   posthog-node:
     specifier: ^5.39.4
     version: 5.39.4
@@ -36,8 +36,8 @@ dependencies:
     specifier: 19.2.7
     version: 19.2.7
   react-dom:
-    specifier: 19.2.4
-    version: 19.2.4(react@19.2.7)
+    specifier: 19.2.7
+    version: 19.2.7(react@19.2.7)
   svix:
     specifier: ^1.96.1
     version: 1.96.1
@@ -48,7 +48,7 @@ dependencies:
 devDependencies:
   '@clerk/testing':
     specifier: ^2.2.7
-    version: 2.2.7(@playwright/test@1.61.1)(react-dom@19.2.4)(react@19.2.7)
+    version: 2.2.7(@playwright/test@1.61.1)(react-dom@19.2.7)(react@19.2.7)
   '@playwright/test':
     specifier: ^1.61.1
     version: 1.61.1
@@ -88,60 +88,60 @@ devDependencies:
 
 packages:
 
-  /@ai-sdk/gateway@4.0.13(zod@4.4.3):
-    resolution: {integrity: sha512-EIiMZZMEAc3yZ3nywrJfKigrkaNwqrQgGsj0QbQ6x3Y73MlQe68EElR2cm/8I5dvBci3PFyahMRe3NwR8OOb9A==}
+  /@ai-sdk/gateway@4.0.19(zod@4.4.3):
+    resolution: {integrity: sha512-pQ3UPO0tyLUuW751jdgWhvHmXmjvAFpyiTeZF6eSVHMYhH/dSH4FtSKGT2nOnvvpaRpU8ygsLV4ng2Mz0lcU/A==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
     dependencies:
-      '@ai-sdk/provider': 4.0.2
-      '@ai-sdk/provider-utils': 5.0.5(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.3
+      '@ai-sdk/provider-utils': 5.0.9(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
     dev: false
 
-  /@ai-sdk/mcp@2.0.8(zod@4.4.3):
-    resolution: {integrity: sha512-9PmSc+ObIxGieXsSXL3ghvAYGXj83V2mFo+FuG/8F1Ujv8d3pVD+fTnh3JdY0gKAT05Ehrtz5FGH9tLJGbQnMw==}
+  /@ai-sdk/mcp@2.0.12(zod@4.4.3):
+    resolution: {integrity: sha512-fJkjzA9m+69sCUTaEhp7kRQQl9MkGbau9gndQweKLXsEtlzBGs1d7R2kbgQ/GVyrkoWg0EAWPUkawbFWWjjqpg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
     dependencies:
-      '@ai-sdk/provider': 4.0.2
-      '@ai-sdk/provider-utils': 5.0.5(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.3
+      '@ai-sdk/provider-utils': 5.0.9(zod@4.4.3)
       pkce-challenge: 5.0.1
       zod: 4.4.3
     dev: false
 
-  /@ai-sdk/provider-utils@5.0.5(zod@4.4.3):
-    resolution: {integrity: sha512-oI0t3dvCoqWNV1I8o1Rybi2DXDvHES5r/TrwtJW90tuFLVepgJlftPxrcjh8vaSvjqC2diTuA2vXyjKAyHJm4A==}
+  /@ai-sdk/provider-utils@5.0.9(zod@4.4.3):
+    resolution: {integrity: sha512-BohlmQ62x+iIOawYCS2z5JzokMq5kZSoVhJawH41mlMdkb01xqhIMG8L0NAByneUFLpdUlSjJjF/bel5j3cGZA==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
     dependencies:
-      '@ai-sdk/provider': 4.0.2
+      '@ai-sdk/provider': 4.0.3
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.0
       zod: 4.4.3
     dev: false
 
-  /@ai-sdk/provider@4.0.2:
-    resolution: {integrity: sha512-pfPoy9J1B1xV7cqJ8MYHOsDYrMv5tR3+EMNfI249OhkD2uRakvav3Fo7XpD2luuN/YNCBY7KfEQc7vEV7KEtyw==}
+  /@ai-sdk/provider@4.0.3:
+    resolution: {integrity: sha512-e0CpNWJUY7OxAFAnCZkw+ri9QOHWwTs1tXP42782KFGCU07qt8NiXCrCVowyCB5dP2r5/Uls+g2oPd8kOJn9dw==}
     engines: {node: '>=22'}
     dependencies:
       json-schema: 0.4.0
     dev: false
 
-  /@ai-sdk/react@4.0.18(react@19.2.7)(zod@4.4.3):
-    resolution: {integrity: sha512-xNLGIy8JepTiKRedRwMcnM4Y0yjBqMYO3/Uea9yiNiC/d/MMlaQPfUzMwB8bs+wHE7xQ+e0tHMgo5CjSrN5AxA==}
+  /@ai-sdk/react@4.0.27(react@19.2.7)(zod@4.4.3):
+    resolution: {integrity: sha512-1c7tOsy7kxs7ukwnuLXwsKYLQBipdrfCvNViLxCxPSG+e3w8xH7WN3AmwVPjRZvFBQIZGMSCfsCNvZSZCPk2UA==}
     engines: {node: '>=22'}
     peerDependencies:
       react: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
     dependencies:
-      '@ai-sdk/mcp': 2.0.8(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.2
-      '@ai-sdk/provider-utils': 5.0.5(zod@4.4.3)
-      ai: 7.0.17(zod@4.4.3)
+      '@ai-sdk/mcp': 2.0.12(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.3
+      '@ai-sdk/provider-utils': 5.0.9(zod@4.4.3)
+      ai: 7.0.26(zod@4.4.3)
       react: 19.2.7
       swr: 2.4.2(react@19.2.7)
       throttleit: 2.1.0
@@ -289,82 +289,49 @@ packages:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  /@clerk/backend@3.11.0(react-dom@19.2.4)(react@19.2.7):
-    resolution: {integrity: sha512-msK+Mvc8tmX3o8UTL6r9h7dodW9vPLvDjyVWLM0yLe5kuvvV5ag70O1qt5SXTCZd7HruS3MAuwUzn3PoQHoT3g==}
-    engines: {node: '>=20.9.0'}
-    dependencies:
-      '@clerk/shared': 4.24.0(react-dom@19.2.4)(react@19.2.7)
-      standardwebhooks: 1.0.0
-      tslib: 2.8.1
-    transitivePeerDependencies:
-      - react
-      - react-dom
-    dev: false
-
-  /@clerk/backend@3.11.4(react-dom@19.2.4)(react@19.2.7):
+  /@clerk/backend@3.11.4(react-dom@19.2.7)(react@19.2.7):
     resolution: {integrity: sha512-w4SaKIMuXYJY9bU70ZHxNZtam0GYWlT0IIN7QHsZ1p9LC+v6P/JyHqVK9PNiXjcjVTZymMxkm5d9N6//9MBDzg==}
     engines: {node: '>=20.9.0'}
     dependencies:
-      '@clerk/shared': 4.25.2(react-dom@19.2.4)(react@19.2.7)
+      '@clerk/shared': 4.25.2(react-dom@19.2.7)(react@19.2.7)
       standardwebhooks: 1.0.0
       tslib: 2.8.1
     transitivePeerDependencies:
       - react
       - react-dom
-    dev: true
 
-  /@clerk/nextjs@7.5.13(next@16.2.10)(react-dom@19.2.4)(react@19.2.7):
-    resolution: {integrity: sha512-8kFy9ZronzX33ukOm8LJ7IL8ioVTSRb8ZPN7xyz4ZEwFhjRpXwagJR3v/TSiwtlUEU0eydpFyT2pWPH8jvdf5A==}
+  /@clerk/nextjs@7.5.17(next@16.2.10)(react-dom@19.2.7)(react@19.2.7):
+    resolution: {integrity: sha512-6RtpFRQ9VhQzMe9vjhVgcVHM6oeSEn+ZP8TYTbnluJG18F+tcIM8FHn4QMGn0tZvPfDxmODKeyZR4gz8FJ620g==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       next: ^15.2.8 || ^15.3.8 || ^15.4.10 || ^15.5.9 || ^15.6.0-0 || ^16.0.10 || ^16.1.0-0
       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
       react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
     dependencies:
-      '@clerk/backend': 3.11.0(react-dom@19.2.4)(react@19.2.7)
-      '@clerk/react': 6.11.4(react-dom@19.2.4)(react@19.2.7)
-      '@clerk/shared': 4.24.0(react-dom@19.2.4)(react@19.2.7)
-      next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4)(react@19.2.7)
+      '@clerk/backend': 3.11.4(react-dom@19.2.7)(react@19.2.7)
+      '@clerk/react': 6.12.2(react-dom@19.2.7)(react@19.2.7)
+      '@clerk/shared': 4.25.2(react-dom@19.2.7)(react@19.2.7)
+      next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7)(react@19.2.7)
       react: 19.2.7
-      react-dom: 19.2.4(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       server-only: 0.0.1
       tslib: 2.8.1
     dev: false
 
-  /@clerk/react@6.11.4(react-dom@19.2.4)(react@19.2.7):
-    resolution: {integrity: sha512-3ft1broqXA6hSMXOhnVwEXDCqmaXSvYW65au6fOdhc26YPQbLL6e56FkJ4y/1c3uObpivuwe9MXj3ln4ZD0zmw==}
+  /@clerk/react@6.12.2(react-dom@19.2.7)(react@19.2.7):
+    resolution: {integrity: sha512-Y+OGZlYfRW+3b+fjdbvSYyYB/IraGitrlLJKYaHxeZYNIwvoUNH0zlreSxUSmxYZ0E2yETSEvkCXszvuZUMa3A==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
       react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
     dependencies:
-      '@clerk/shared': 4.24.0(react-dom@19.2.4)(react@19.2.7)
+      '@clerk/shared': 4.25.2(react-dom@19.2.7)(react@19.2.7)
       react: 19.2.7
-      react-dom: 19.2.4(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       tslib: 2.8.1
     dev: false
 
-  /@clerk/shared@4.24.0(react-dom@19.2.4)(react@19.2.7):
-    resolution: {integrity: sha512-QgAihmKS4ld3YSqSPMaKnzU4RGV+60k5khcjiz0xi4BCUST+UJAbV8f3Hw0osxq/Rw9rsxmRlcoxhEMsN5SOFA==}
-    engines: {node: '>=20.9.0'}
-    peerDependencies:
-      react: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
-      react-dom: ^18.0.0 || ~19.0.3 || ~19.1.4 || ~19.2.3 || ~19.3.0-0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      react-dom:
-        optional: true
-    dependencies:
-      '@tanstack/query-core': 5.101.2
-      dequal: 2.0.3
-      glob-to-regexp: 0.4.1
-      js-cookie: 3.0.7
-      react: 19.2.7
-      react-dom: 19.2.4(react@19.2.7)
-    dev: false
-
-  /@clerk/shared@4.25.2(react-dom@19.2.4)(react@19.2.7):
+  /@clerk/shared@4.25.2(react-dom@19.2.7)(react@19.2.7):
     resolution: {integrity: sha512-v7zgDh0eVLl3KzRHbKYTsPQ+4Xcx8A2oiU5iZ9WhME024WudwkjjPJRK12RycY0VA1Sj8i4Pi5zEpecqB/gp1Q==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
@@ -381,10 +348,9 @@ packages:
       glob-to-regexp: 0.4.1
       js-cookie: 3.0.7
       react: 19.2.7
-      react-dom: 19.2.4(react@19.2.7)
-    dev: true
+      react-dom: 19.2.7(react@19.2.7)
 
-  /@clerk/testing@2.2.7(@playwright/test@1.61.1)(react-dom@19.2.4)(react@19.2.7):
+  /@clerk/testing@2.2.7(@playwright/test@1.61.1)(react-dom@19.2.7)(react@19.2.7):
     resolution: {integrity: sha512-JbdPgoivA9I5dNQ5mbAyPvwI7mtFA6h4Bj1v4RUVMimA4iZpAIgtoiWTzUe9vQD+nvpL43Wf9YvL0khf80fivQ==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
@@ -396,8 +362,8 @@ packages:
       cypress:
         optional: true
     dependencies:
-      '@clerk/backend': 3.11.4(react-dom@19.2.4)(react@19.2.7)
-      '@clerk/shared': 4.25.2(react-dom@19.2.4)(react@19.2.7)
+      '@clerk/backend': 3.11.4(react-dom@19.2.7)(react@19.2.7)
+      '@clerk/shared': 4.25.2(react-dom@19.2.7)(react@19.2.7)
       '@playwright/test': 1.61.1
       dotenv: 17.2.2
     transitivePeerDependencies:
@@ -2493,15 +2459,15 @@ packages:
     hasBin: true
     dev: true
 
-  /ai@7.0.17(zod@4.4.3):
-    resolution: {integrity: sha512-kpIjNtN0tyUaxzkAs7b8YF48WZzc71dKu0HqFPSAWg/avu1Ogv50UPE9hpVMr+kb33zsEa6LrAU9DZHMNscvzw==}
+  /ai@7.0.26(zod@4.4.3):
+    resolution: {integrity: sha512-gzLoOHoXFJNcxrzFyHClbZsDEA1z0LNm3Kwq8lEWIfL+8wEEir+eDJqJJbkEJdLxGrc0IuBkybxEDzkbvSavjw==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
     dependencies:
-      '@ai-sdk/gateway': 4.0.13(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.2
-      '@ai-sdk/provider-utils': 5.0.5(zod@4.4.3)
+      '@ai-sdk/gateway': 4.0.19(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.3
+      '@ai-sdk/provider-utils': 5.0.9(zod@4.4.3)
       zod: 4.4.3
     dev: false
 
@@ -4630,7 +4596,7 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /next@16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.4)(react@19.2.7):
+  /next@16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.7)(react@19.2.7):
     resolution: {integrity: sha512-2som5AVXb3kE6Yjine3/mNbBayYF58eguBWIVVUdr1y/L426xyVEgYxgBG+1QC34P2x5E+tcDup6XkuOAX3dCA==}
     engines: {node: '>=20.9.0'}
     hasBin: true
@@ -4658,7 +4624,7 @@ packages:
       caniuse-lite: 1.0.30001802
       postcss: 8.4.31
       react: 19.2.7
-      react-dom: 19.2.4(react@19.2.7)
+      react-dom: 19.2.7(react@19.2.7)
       styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.2.7)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.2.10
@@ -4968,10 +4934,10 @@ packages:
       unpipe: 1.0.0
     dev: false
 
-  /react-dom@19.2.4(react@19.2.7):
-    resolution: {integrity: sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ==}
+  /react-dom@19.2.7(react@19.2.7):
+    resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
     peerDependencies:
-      react: ^19.2.4
+      react: ^19.2.7
     dependencies:
       react: 19.2.7
       scheduler: 0.27.0
