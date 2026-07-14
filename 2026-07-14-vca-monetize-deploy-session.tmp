@@ -1,0 +1,119 @@
+# Session: 2026-07-14
+
+**Started:** ~2026-07-13 15:00 (session spanned two calendar days)
+**Last Updated:** 2026-07-14 ~16:00 (session closing)
+**Project:** veteran-claims-app (`/Users/marcusklein/dev/veteran-claims-app`), plus content work in `veteran-disability-ai-resources`
+**Topic:** Merged/reviewed Dependabot PRs, shipped the Founding Supporter monetization tier + streamText bugfix + cosmetic polish, drafted GTM content, and debugged the first real production deployment on Vercel (found and got a fix opened for a live-secret leak and a Clerk dev-keys-in-production bug)
+
+---
+
+## What We Are Building
+
+Continuing execution of the 2026-07-13 five-agent product-strategy synthesis
+(`docs/superpowers/findings/2026-07-13-product-strategy-synthesis.md` in
+veteran-disability-ai-resources), which identified the highest-leverage next steps as:
+(1) merge and ship the Knowledge Assistant, (2) add zero-Document-Workspace-dependency
+monetization (Founding Supporter tier + donation link), (3) resume GTM content/outreach
+once something real exists to point people at. This session executed most of that list
+and then hit the actual "get it live" phase, surfacing a real production auth bug along
+the way.
+
+---
+
+## What WORKED (with evidence)
+
+- **7 open Dependabot PRs reviewed and merged** — confirmed by: `gh pr list --state merged` shows #2-#8 all merged; local build/typecheck/test all verified clean on the two riskiest majors (TypeScript 5→6, @types/node 20→26) via isolated worktree testing before merge.
+- **streamText lockup bug fixed** — `chat/page.tsx` now surfaces `useChat`'s `error` state with a "Try again" button wired to `clearError()`. Confirmed by: reading the actual `ai` SDK source (`node_modules/ai/dist/index.js:16449-16453`) showing `clearError()` only fires `if (status === "error")` then resets to `"ready"`; a second Claude session later verified this end-to-end via the e2e test.
+- **Founding Supporter tier shipped** — `founding_supporters` table + `isFoundingSupporter`/`activateFoundingSupporter`, chat route skips the 40 msg/mo cap and routes to `openai/gpt-4.1` (vs `gpt-4.1-mini`) for supporters. Confirmed by: 3 new passing unit tests, full suite green (57→59 tests over the session as other work landed).
+- **`/support` page** — donation + Founding Supporter CTAs, gracefully degrades to "coming soon" without env vars set. Confirmed by: e2e test passing, build shows it as a static prerendered route.
+- **Iterative code review (1 cycle) on the Founding Supporter commit** — code-reviewer + security-reviewer both returned zero CRITICAL/HIGH findings. Confirmed by: both agents traced actual behavior (security-reviewer confirmed no IDOR/injection/spoofing vector; code-reviewer traced the AI SDK source directly).
+- **Cosmetic polish (error.tsx, not-found.tsx, robots.ts)** — confirmed working via live dev-server curl checks (`/robots.txt` returns correct rules, unmatched route renders the custom 404) and a clean production build.
+- **Vercel project confirmed live and building successfully** — confirmed by: `get_project` MCP tool shows `readyState: "READY"`, build logs show zero errors, `get_runtime_errors` shows none in the last 24h, and `/api/health`, `/`, `/support`, `/sourcing-standard` all return HTTP 200 with real content once Deployment Protection was disabled.
+- **DB connectivity in production confirmed real** — `/api/health` returns `{"status":"ok"}`, meaning `DATABASE_URL` is correctly configured and the Neon connection actually works.
+- **`.env.example` live-secret leak caught before it reached git history** — flagged a real `VERCEL_AI_GATEWAY_API_KEY` value sitting in an uncommitted `.env.example` diff (not a placeholder) and refused three separate attempts (including a `/commit-commands:commit-push-pr` slash command explicitly asking for tool-calls-only, no text) to commit/push/PR it as-is. User fixed it (replaced with an empty placeholder); confirmed via `git diff` before proceeding. **PR #9** (`docs/env-example-cron-and-gateway-vars`, opened by a concurrent session) now carries the clean fix — CI green, Vercel preview green, mergeable, not yet merged.
+
+---
+
+## What Did NOT Work (and why)
+
+- **`list_projects` via the Vercel MCP tool** — returned an empty array repeatedly even after the user confirmed the project existed (visible in their own dashboard at `vercel.com/marcusk639s-projects/veteran-claims-app`). Workaround: `get_project` with the exact project slug (`veteran-claims-app`) works fine and returns full details. Root cause unconfirmed — possibly a listing/pagination bug in that specific MCP tool, not a real access problem.
+- **`deploy_to_vercel` MCP tool considered, then rejected** — it uploads a raw file tree with no git linkage. Using it would have either failed immediately (app throws via `getRequiredEnv` on missing secrets I don't have real values for) or succeeded in a worse state (a project disconnected from GitHub, breaking auto-deploy-on-push). Did not run it.
+- **Public production routes initially all 302'd to `vercel.com/sso-api`** — because Vercel's default "Deployment Protection" (Vercel Authentication) was on, gating the entire deployment behind a Vercel team login regardless of the app's own auth logic. Fixed by user changing Project Settings → Deployment Protection → Vercel Authentication to "Only Preview Deployments."
+- **`/dashboard` and `/dashboard/chat` return 404 in production instead of redirecting to `/sign-in`** — NOT fixed yet. Root cause confirmed via response headers: `x-clerk-auth-reason: protect-rewrite, dev-browser-missing`, and the HTML references `coherent-doe-38.clerk.accounts.dev` — the production env vars are using **Clerk development-instance keys** (the same ones used locally), not production `pk_live_...`/`sk_live_...` keys. Clerk's dev instances need a cross-origin "dev browser" JWT to resolve auth state; when it's missing (any fresh production visitor), newer Clerk middleware rewrites to a 404 instead of redirecting to sign-in, rather than the expected `auth.protect()` → `/sign-in` redirect.
+- **Rebasing off a mid-work concurrent-session branch** — early in the session, `feat/founding-supporter-tier` was accidentally built on top of `docs/phase7-documentation`'s tip (another concurrent Claude session's in-progress, not-yet-pushed README/incident-response commit), discovered when `git branch --show-current` unexpectedly showed the wrong branch. Fixed via `git rebase --onto origin/main <old-parent> feat/founding-supporter-tier` to cleanly drop the dependency before merging to `main`. That other branch was later properly merged into `main` by the other session via a real merge commit (`02b0618`), so nothing was lost.
+- **Git commands racing a concurrent session on the same shared working directory, again** — near session end, ran `git checkout -b docs/env-example-cron-and-gateway-key` → `git add .env.example` → `git commit` → `git push` to land the (by-then-fixed) `.env.example` change. `git commit` reported "nothing added to commit" — a concurrent session's own `git commit` for the identical fix had landed on whatever branch HEAD pointed to at that exact instant (this branch), under their own commit message, moments before mine ran. Their commit already had its own PR open (#9, from a differently-named branch `docs/env-example-cron-and-gateway-vars`, same commit hash). Recognized this via `git branch --contains <hash>` showing the same commit on two branch names, and `gh pr list` showing PR #9 already existed. Did not open a duplicate PR; deleted the redundant branch (local + remote) instead. **Lesson**: in this shared-working-directory setup, always check `gh pr list --state open` for an existing PR on the exact same file/topic before assuming a fresh branch+commit is actually new.
+
+---
+
+## What Has NOT Been Tried Yet
+
+- Swapping the production Clerk keys from dev-instance to a real production Clerk instance (`pk_live_...`/`sk_live_...`/production webhook secret) — this is the next concrete step to unblock `/dashboard` working at all in production.
+- Re-verifying `/dashboard/chat` redirects correctly to `/sign-in` after the Clerk key swap.
+- Stripe setup (donation Payment Link + Founding Supporter $4.99/mo Payment Link) — `/support` is still showing "coming soon" for both CTAs.
+- Actually testing a real chat message end-to-end in production (requires the Clerk fix first, plus confirming `RAG_MCP_URL`/`RAG_MCP_TOKEN` point at a real, reachable rag-system MCP server, not `localhost:3001`).
+- Manual Founding Supporter activation flow has never been exercised for a real paying user (by design — no real Stripe integration yet).
+- Publishing the drafted GTM articles (DBQ piece, PACT Act qualification, PACT Act exposure checklist) — all three are content-complete but explicitly held pending a venue/brand decision.
+- Sending the drafted VSO outreach emails (Military Rape Crisis Center, Continue Mission) — explicitly held pending a recorded product walkthrough video, which itself is gated on the app actually working end-to-end in production.
+- Brainstorming session for a bigger "claim rater" / detailed-guide-generation / per-claim-workspace feature set was started via `/superpowers:brainstorming` then interrupted by the user to refocus on deployment — not resumed by me. Note: the "claim rater" idea (predicting a probable rating range from uploaded documents) is a serious 38 CFR Part 14 (unauthorized practice) compliance risk per this project's own established "compliant messaging bright line" — flag this explicitly if/when that brainstorm resumes, before any design work proceeds on that specific sub-feature.
+- **IMPORTANT — a concurrent session appears to have picked this up independently while I was working**: `main` now contains a "docs: add Document Workspace implementation design spec" commit (`95767e2`) and a "docs: add detailed plan-review findings for Document Workspace spec" commit (`773ad77`, noting 3 critical + 5 verify-before-building questions + 5 non-blocking suggestions from a `/plan-review` pass), plus their own session-handoff doc (`93eb4bc`, "docs: add session handoff for 2026-07-14"). **Read that other session's handoff commit/doc at the start of the next session** — it likely has a more complete, independently-written account of the Document Workspace spec/plan-review state than anything in this file, since I did not participate in that thread.
+- Merging PR #9 (the `.env.example` fix) — open, green, mergeable, just not yet merged by anyone.
+
+---
+
+## Current State of Files
+
+| File | Status | Notes |
+|---|---|---|
+| `src/app/dashboard/chat/page.tsx` | Complete | streamText error-recovery fix (`error`/`clearError` from `useChat`), pushed to main |
+| `src/app/api/chat/route.ts` | Complete | Founding Supporter gating (cap bypass + priority model), reordered post-review to check body validation first |
+| `src/lib/founding-supporter.ts` + `.test.ts` | Complete | `isFoundingSupporter`/`activateFoundingSupporter`, real-DB integration tests, all passing |
+| `src/db/schema.ts` | Complete | `founding_supporters` table added, migration `0006_premium_weapon_omega.sql` generated and applied |
+| `src/app/support/page.tsx` | Complete | Donation + Founding Supporter CTAs, env-var-driven, gracefully degrades when unset |
+| `src/app/error.tsx`, `not-found.tsx`, `robots.ts` | Complete | Verified against this repo's actual (non-standard) Next.js docs in `node_modules/next/dist/docs/` — uses `unstable_retry`, not classic `reset` |
+| `docs/manual-tasks/2026-07-13-ship-founding-supporter-and-deploy.md` | Complete, partially executed | Runbook for all human-only steps; CRON_SECRET and Vercel project creation done by user since it was written; Stripe + Clerk production keys still outstanding |
+| `.env.example` | Fixed, PR open not merged | Real `VERCEL_AI_GATEWAY_API_KEY` value replaced with an empty placeholder by user; clean fix now sitting in **PR #9** (`docs/env-example-cron-and-gateway-vars`), CI/Vercel preview green, mergeable. Consider rotating the exposed key regardless, since it was pasted into this conversation multiple times. |
+| `tests/e2e/authenticated-chat.spec.ts`, `chat.spec.ts` | Complete | New tests added this session; one had a real Playwright strict-mode bug (bare `getByRole("alert")` collided with Next's built-in route-announcer) that I couldn't verify locally (missing `E2E_CLERK_USER_EMAIL`) — a concurrent session found and fixed it properly (commit `630b854`) |
+| `content/2026-07-13-pact-act-presumptive-qualification.md` (veteran-disability-ai-resources) | Complete, unpublished | Drafted, no CTA/byline by design |
+| `content/2026-07-13-pact-act-exposure-checklist.md` (veteran-disability-ai-resources) | Complete, unpublished | Drafted, no CTA/byline by design |
+| `content/2026-07-13-vso-outreach-message.md` (veteran-disability-ai-resources) | Complete, unsent | Explicitly marked "do not send yet" pending a walkthrough video + live deployed product |
+
+All veteran-claims-app commits from this session are pushed to `origin/main` (local `main` is even with `origin/main`, 0 ahead/0 behind, as of last check). The GTM content files in veteran-disability-ai-resources remain uncommitted (untracked), per "never commit unless asked."
+
+---
+
+## Decisions Made
+
+- **Rebased `feat/founding-supporter-tier` off `origin/main` directly, dropping its accidental dependency on another concurrent session's unpushed `docs/phase7-documentation` commit** — reason: merging it as-is would have dragged unrelated, unreviewed work into `main` prematurely.
+- **Chose to reorder `isFoundingSupporter()` to run after request-body validation** (not before) — reason: a code-reviewer finding in the iterative-review pass noted the original order wasted a DB round-trip on requests that would 400 anyway; zero-risk, zero-behavior-change fix, applied post-loop per the iterative-review skill's own guidance.
+- **Left the per-minute rate limit (40 req/min) applying uniformly to Founding Supporters** — reason: it's an abuse-scale burst floor, not a monetization gate; flagged by security-reviewer as a real-but-accepted tradeoff (no cost ceiling beyond that for supporters) worth revisiting once there's real usage, not before.
+- **Did not use `deploy_to_vercel` MCP tool for the production deploy** — reason: would have created a git-disconnected project, worse than the git-linked one already set up manually by the user.
+- **Did not build the "claim rater" / Document Workspace feature set this session** — reason: user explicitly interrupted the brainstorming skill invocation to refocus on deployment readiness first.
+
+---
+
+## Blockers & Open Questions
+
+- **BLOCKING**: Production Clerk keys are development-instance keys, causing `/dashboard*` to 404 instead of redirecting to sign-in for any signed-out visitor. Needs a production Clerk instance + `pk_live_.../sk_live_...`/webhook secret swapped into Vercel env vars, then redeploy. **Not yet fixed as of session end.**
+- PR #9 (`.env.example` fix) is open, green, and mergeable — just needs someone to actually click merge.
+- Stripe account/Payment Links not yet set up — `/support` page CTAs remain in "coming soon" state.
+- Unclear whether `RAG_MCP_URL`/`RAG_MCP_TOKEN` in the Vercel production env vars point at a real, publicly-reachable rag-system deployment, or still reference `localhost:3001` — this would break the actual chat/retrieval functionality even once the Clerk auth issue is fixed. Not yet verified.
+- `list_projects` Vercel MCP tool bug (returns empty despite project existing) — worth a sanity re-check next session in case it was transient, but not investigated further.
+- The exposed `VERCEL_AI_GATEWAY_API_KEY` value (pasted repeatedly in this conversation before being fixed) should probably be rotated in the Vercel AI Gateway dashboard even though it never reached git history.
+- Should read the other concurrent session's Document Workspace plan-review findings (`773ad77`) and session handoff (`93eb4bc`) before deciding what to do next on that feature — I did not participate in that thread and have no first-hand context on it.
+
+---
+
+## Exact Next Step
+
+1. Merge PR #9 (`.env.example` fix — CRON_SECRET + VERCEL_AI_GATEWAY_API_KEY placeholders, already green).
+2. Create/locate a production Clerk instance and swap `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`/`CLERK_SECRET_KEY`/`CLERK_WEBHOOK_SECRET` in Vercel's production env vars to the `pk_live_`/`sk_live_` values, redeploy, then re-verify `/dashboard/chat` via curl (should see a redirect to `/sign-in`, not a 404 with `x-clerk-auth-reason: protect-rewrite`).
+3. Verify `RAG_MCP_URL`/`RAG_MCP_TOKEN` point at a real reachable endpoint before declaring the chat feature actually live.
+4. Read the other concurrent session's Document Workspace plan-review findings before resuming that thread.
+
+---
+
+## Environment & Setup Notes
+
+- Vercel project: `veteran-claims-app` under team `marcusk639s-projects` (`team_FlYf6JwNevxojtPfPIvvWg3O`), project ID `prj_cMuOskAaAoZKqkTZm647Icr05ikI`. Use `get_project`/`get_deployment`/`get_runtime_errors`/`get_deployment_build_logs` MCP tools directly by slug/ID — `list_projects` doesn't surface it for unknown reasons.
+- This repo's working directory (`/Users/marcusklein/dev/veteran-claims-app`) is shared with other concurrently-running Claude sessions — always run `git branch --show-current` and `git status` before any git operation, and re-check after any pause, since branches have been switched out from under a session mid-work at least twice this session.
+- This app's Next.js version is intentionally non-standard/customized (per `AGENTS.md`) — always check `node_modules/next/dist/docs/` before relying on remembered Next.js APIs. Confirmed real deviations found this session: `error.tsx` uses `unstable_retry` not `reset`; `not-found.js`/`global-not-found.js` split.
