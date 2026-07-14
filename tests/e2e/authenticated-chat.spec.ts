@@ -76,7 +76,13 @@ test("chat input recovers after a failed send instead of locking permanently", a
   await input.fill("this send should fail");
   await sendButton.click();
 
-  await expect(page.getByRole("alert")).toBeVisible();
+  // Scoped to the app's own error banner text -- a bare getByRole("alert")
+  // also matches Next's built-in `#__next-route-announcer__` element (also
+  // role="alert", for accessibility route-change announcements), causing a
+  // Playwright strict-mode violation (2 matches).
+  await expect(
+    page.getByRole("alert").filter({ hasText: /something went wrong/i }),
+  ).toBeVisible();
   await expect(input).toBeDisabled();
 
   await page.unroute("**/api/chat");
