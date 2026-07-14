@@ -569,7 +569,20 @@ This repo's global `.env*` edit-protection hook blocks Claude from editing `.env
 
 ---
 
-## Phase 9: Code Quality Cleanup
+## Phase 9: Code Quality Cleanup — ✅ 9/10 DONE, 1 CROSS-REPO FOLLOW-UP (2026-07-13)
+
+Landed as 8 separate commits per the anti-pattern guard below (`fc61254`, `8e5cdce`, `7d3b758`, `7da8c7f`, `7811c52`, `c930ee9`, `78cabe2`), each independently verified with the full check suite.
+
+1. **Done** — `resolveConversation`/`persistUserMessage`/`buildOnFinishHandler` extracted from `POST`. 19/19 route tests and 57/57 full suite passed identically before/after.
+2. **Done** — `CitationPill` got `dark:bg-slate-800 dark:text-slate-200`, matching the plain-media-query `dark:` convention already used (unmodified) in `src/app/page.tsx` — confirmed this app has no `.dark`-class toggle, Tailwind v4's default `prefers-color-scheme` variant just works.
+3. **Verified, no change needed** — re-checked `page.tsx`: the outer map already used `key={message.id}` (not an index), exactly the condition under which the plan said to leave it alone. Inner `parts`/`results` maps correctly keep index keys (no stable id exists upstream, they don't reorder within a render).
+4. **Done** — `MAX_TOOL_CALL_STEPS = 3` extracted with the original comment preserved.
+5. **Documented here, no code change possible in this repo** — destructive MCP tools (`purge_source`, etc.) still share this app's full-privilege `RAG_MCP_TOKEN`. Fixing this requires `rag-system` to issue a second, read-only-scoped token/principal that this app would use for `search_documents`/`get_document`/`ask` while reserving the full-privilege token only for tools that actually need it (if any client-side tool here needs destructive access at all — worth revisiting whether it should). Cross-repo follow-up for `rag-system`'s own auth model, not actionable from this side alone.
+6. **Done** — `messages.role`/`conversations.agentType` converted to `pgEnum` (`message_role`: user/assistant; `agent_type`: knowledge-assistant). Checked real data first (only those exact values present, confirmed via direct query) before generating the migration. Hit and recovered from a self-inflicted migration snag worth remembering: the first `db:migrate` attempt failed partway (`CREATE TYPE` succeeded, `ALTER TABLE ... USING` failed on leftover bad test data from the new tests' own initial RED run), leaving the enum types created but the columns still `text`; had to manually inspect and drop the two now-orphaned enum types before the migration would apply cleanly a second time. New DB-level tests confirm invalid values are now rejected.
+7. **Done** — `"packageManager": "pnpm@9.12.0"` added, matching CI's pinned version and `rag-system`'s own `package.json`.
+8. **Done** — `ai`/`@ai-sdk/react`/`@clerk/nextjs` patch-bumped; also caught and fixed `react-dom` (19.2.4) having drifted behind `react` (19.2.7, from an earlier Dependabot merge) — brought back into lockstep.
+9. **Re-verified, still no fix available** — `pnpm audit` shows the same 2 moderate advisories as the original review (`esbuild` via `drizzle-kit`'s deprecated `@esbuild-kit` chain, `postcss` via `next`'s bundled copy). Confirmed both `drizzle-kit@0.31.10` and `next@16.2.10` are already the latest _stable_ releases (checked `npm view ... dist-tags`) — no safe bump exists without moving to an unreleased canary/RC. Both are dev-only/build-time transitive deps with no production runtime exposure. Nothing to do until upstream ships a fix.
+10. **Done** — doc comment above `POST` summarizing the request/response/error contract in its final Phase 1-8 shape.
 
 **What to implement:** The remaining Low-priority items not already resolved by earlier phases (Phase 5 already resolved the duplicated-interfaces item, #28 — do not redo it here).
 
