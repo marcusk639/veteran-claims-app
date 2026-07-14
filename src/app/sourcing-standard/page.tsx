@@ -9,13 +9,15 @@ export default function SourcingStandardPage() {
         model knowledge.
       </p>
       <p>
-        Every guide in our knowledge base carries two pieces of metadata:{" "}
-        <code>last_verified</code>, the date a human last checked its citations
-        against the current regulation and VA guidance, and{" "}
-        <code>volatility</code>, an honest label for how likely that guide is to
-        go stale (regulation text is stable; contractor rosters and
-        processing-time figures drift). We would rather tell you a guide is due
-        for a recheck than let it quietly go out of date.
+        Internally, every guide in our knowledge base is tagged with{" "}
+        <code>last_verified</code> (the date a human last checked its content
+        against the current regulation and VA guidance) and{" "}
+        <code>volatility</code> (how likely that guide is to go stale --
+        regulation text is stable; contractor rosters and processing-time
+        figures drift). Our content team uses these tags to decide what to
+        recheck and when. They&rsquo;re a curation practice, not a per-answer
+        readout -- an individual citation in the chat doesn&rsquo;t currently
+        carry its own freshness label.
       </p>
     </main>
   );

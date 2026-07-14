@@ -549,7 +549,11 @@ This repo's global `.env*` edit-protection hook blocks Claude from editing `.env
 
 ---
 
-## Phase 8: Sourcing-Standard Page Accuracy
+## Phase 8: Sourcing-Standard Page Accuracy — ✅ DONE, Option A (2026-07-13)
+
+**Option A implemented, and it's no longer really a choice.** Re-verified rag-system's `packages/core/src/metadata-policy.ts` directly (its `EXPOSABLE_METADATA_FIELDS` allowlist): `title`, `url`, `mimeType`, `sizeBytes`, `createdAt`, `modifiedAt`, `path`, `docClass` — no `last_verified`/`volatility`. Went further than the original plan asked and grepped the whole `rag-system` tree for those exact field names: they exist, but only in the `git-markdown` connector's frontmatter parsing, and land in `metadata.extra` — the allowlist's explicitly-documented STRIPPED bucket ("free-form connector blob... unvetted"). So the data is captured at ingestion but deliberately never crosses the MCP/API boundary by rag-system's own default-deny policy. Option B isn't just higher-effort, it's not implementable without a cross-repo rag-system change to promote these out of `extra` into named allowlisted fields — a decision for that repo's own maintainers, not something to route around from this side.
+
+`src/app/sourcing-standard/page.tsx` copy reworded: `last_verified`/`volatility` are now described as an internal curation practice the content team uses to decide recheck cadence, with an explicit line that an individual citation in chat doesn't carry its own freshness label today. Verified: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all green (57/57 tests), and `pnpm exec playwright test tests/e2e/chat.spec.ts` passes unchanged (4/4) — the existing `getByText(/last_verified/i)` assertion still finds the term in the reworded copy, exactly as the plan anticipated for a copy-only Option A diff, no test changes needed.
 
 **What to implement:** This is a product decision, not a mechanical fix — the plan presents both options; pick one before implementing.
 
